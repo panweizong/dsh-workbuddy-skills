@@ -1,0 +1,7 @@
+- insert:
+    - id: dsh-workbuddy-skills
+      name: 'dsh-workbuddy-skills'
+      # Optional overrides (defaults shown). The panel only reads these.
+      # config:
+      #   sourcePath: '~/.workbuddy/skills'
+      #   targetPath: ''   # empty = <dshHome>/skills

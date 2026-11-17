@@ -1,0 +1,36 @@
+{
+  "name": "dsh-workbuddy-skills",
+  "title": "panweizong/dsh-workbuddy-skills",
+  "description": {
+    "en": "WorkBuddy skill market for DSH: scan a WorkBuddy skills folder, normalize and dedupe skill ids, then install whole skill folders into your DSH skills directory from a Settings panel — one click per card, backup-before-overwrite, and a delete action.",
+    "zh": "WorkBuddy 技能市场：扫描 WorkBuddy 技能目录，规范化 id、折叠重复副本后复制进 DSH 技能目录。卡片式面板一件安装/更新/删除，覆盖前自动备份，源目录与目标目录可在面板里改。"
+  },
+  "homepage": "https://awesome-dsh-plugin.com/p/panweizong/dsh-workbuddy-skills/",
+  "repository": {
+    "url": "https://github.com/panweizong/dsh-workbuddy-skills"
+  },
+  "metadata": {
+    "category": "skill",
+    "keywords": [
+      "workbuddy",
+      "skills",
+      "skill-import",
+      "skill-manager",
+      "skill-market"
+    ],
+    "labels": [],
+    "sortKeys": {}
+  },
+  "versions": [
+    {
+      "version": "0.1.0",
+      "publishTimestamp": 0,
+      "source": {
+        "type": "npm"
+      },
+      "engines": {
+        "dsh": ">=0.2.0-rc.2 <0.3.0"
+      }
+    }
+  ]
+}

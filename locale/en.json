@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "WorkBuddy Skills",
+    "description": "Scan the WorkBuddy skills folder and copy selected skills into the DSH global skills folder (~/.dsh/skills)"
+  }
+}

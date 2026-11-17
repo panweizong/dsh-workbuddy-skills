@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "WorkBuddy 技能市场",
+    "description": "扫描 WorkBuddy 技能目录，把选中的技能复制到 DSH 全局技能目录（~/.dsh/skills）"
+  }
+}

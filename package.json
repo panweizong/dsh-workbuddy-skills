@@ -1,0 +1,75 @@
+{
+  "name": "dsh-workbuddy-skills",
+  "version": "0.1.0",
+  "description": "WorkBuddy skill market for DeepSeek Harness: scan the WorkBuddy skills folder, normalize and dedupe skill ids, then copy picked skills into the DSH skills directory from a Settings panel.",
+  "type": "module",
+  "main": "src/index.js",
+  "license": "MIT",
+  "author": "panweizong",
+  "homepage": "https://github.com/panweizong/dsh-workbuddy-skills#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/panweizong/dsh-workbuddy-skills.git"
+  },
+  "bugs": {
+    "url": "https://github.com/panweizong/dsh-workbuddy-skills/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20",
+    "dsh": ">=0.2.0-rc.2 <0.3.0"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh": ">=0.2.0-rc.2 <0.3.0"
+  },
+  "scripts": {
+    "test": "node scripts/smoke.mjs && node scripts/routes-smoke.mjs"
+  },
+  "exports": {
+    ".": "./src/index.js",
+    "./client": "./client/client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./locale/*.json": "./locale/*.json",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src",
+    "client",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "icon": "./icon.svg",
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "cordis",
+    "skill",
+    "skills",
+    "skill-manager",
+    "skill-import",
+    "workbuddy",
+    "workbuddy-skills",
+    "skill-market"
+  ],
+  "dsh": {
+    "manifestVersion": 1,
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-connection",
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-settings"
+      ],
+      "platform": "web"
+    }
+  }
+}
