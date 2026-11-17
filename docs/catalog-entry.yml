@@ -1,0 +1,6 @@
+url: https://github.com/panweizong/dsh-workbuddy-skills
+name: panweizong/dsh-workbuddy-skills
+category: skill
+description:
+  en: 'Imports WorkBuddy skills into DSH: scans the WorkBuddy skills folder, renames each folder to its frontmatter name, drops byte-identical duplicate copies, marks every skill new/update/same by SHA-256, rewrites SKILL.md with only the fields DSH understands, and installs, updates (with backup) or removes skills from a Settings panel. Source and target paths are configurable and a dry run lists the planned changes first.'
+  zh: '把 WorkBuddy 技能导入 DSH：扫描 WorkBuddy 技能目录，按 frontmatter name 归一目录名，剔除完全重复的副本，用 SHA-256 判定新增/更新/一致，重写 SKILL.md 只保留 DSH 认识的字段，并在设置面板里安装、带备份地更新或删除技能。源目录与目标目录可配置，可先试运行查看将要发生的变更。'
