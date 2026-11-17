@@ -1,5 +1,5 @@
-# 投稿文件：awesome-dsh-plugin 需要把本文件内容保存为 data/plugins/panweizong__dsh-workbuddy-skills.yml
-# 格式与官方 contributing.md 一致（只保留 url / name / category / description）
+# 投稿用：awesome-dsh-plugin 要求把本文件内容保存为 data/plugins/panweizong__dsh-workbuddy-skills.yml
+# 字段与官方 contributing.md 一致：url / name / category / description
 url: https://github.com/panweizong/dsh-workbuddy-skills
 name: panweizong/dsh-workbuddy-skills
 category: skill
