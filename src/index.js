@@ -48,9 +48,12 @@ export function apply(ctx, config = {}) {
 
   // Staged inject: the webServer may register after this plugin applies, and a
   // synchronous ctx.get would silently skip the routes (the classic 404).
-  ctx.inject(['webServer'], (webServerCtx) => {
+  // `connection` is required too — every route starts with its trust gate
+  // (ctx.connection.requestRejection), which is what keeps a page opened in an
+  // arbitrary browser tab away from these routes.
+  ctx.inject(['webServer', 'connection'], (routeCtx) => {
     ctx.effect(() => {
-      const webServer = webServerCtx.webServer
+      const webServer = routeCtx.webServer
       if (typeof webServer?.register !== 'function') {
         warn('webServer is unavailable — the market panel routes were not mounted')
         return () => {}
@@ -58,6 +61,7 @@ export function apply(ctx, config = {}) {
       return mountRoutes(
         { webServer },
         {
+          connection: routeCtx.connection,
           sourcePath,
           targetRoot,
           manifestPath,

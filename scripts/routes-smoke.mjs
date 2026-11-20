@@ -19,7 +19,7 @@ function request(method, url, { headers = {}, body = null } = {}) {
   return {
     method,
     url,
-    headers: { host: '127.0.0.1:13641', ...headers },
+    headers: { host: '127.0.0.1:13641', 'x-test-auth': 'ok', ...headers },
     async *[Symbol.asyncIterator]() { for (const chunk of chunks) yield chunk },
   }
 }
@@ -36,19 +36,43 @@ function response() {
   return out
 }
 
-const routes = new Map()
-const webServer = {
-  register(route) {
-    routes.set(route.path, route.handler)
-    return () => routes.delete(route.path)
+/**
+ * Stub for `ctx.connection`: `requestRejection` is the DSH trust gate every
+ * route starts with. `x-test-auth: ok` stands in for the browser's session,
+ * `forbidden` for a refused origin, anything else for a missing credential.
+ */
+const connection = {
+  requestRejection({ headers }) {
+    const level = headers['x-test-auth']
+    if (level === 'ok') return undefined
+    if (level === 'forbidden') return 403
+    return 401
   },
 }
+
+function stubServer() {
+  const routes = new Map()
+  return {
+    routes,
+    webServer: {
+      register(route) {
+        routes.set(route.path, route.handler)
+        return () => routes.delete(route.path)
+      },
+    },
+  }
+}
+
+const primary = stubServer()
+const routes = primary.routes
+const webServer = primary.webServer
 
 const target = await mkdtemp(join(tmpdir(), 'wbs-routes-'))
 const settingsPath = join(target, '.settings', 'settings.json')
 const dispose = mountRoutes(
   { webServer },
   {
+    connection,
     sourcePath: DEFAULT_SOURCE_PATH,
     targetRoot: target,
     manifestPath: join(target, '.manifest', 'manifest.json'),
@@ -82,6 +106,17 @@ check('state carries installed counter', typeof stateBody.counts.installed === '
 check('skills carry icon + installed fields', stateBody.skills.every((s) => 'icon' in s && 'installed' in s))
 const withIcon = stateBody.skills.find((s) => s.icon !== '')
 check('at least one skill ships an icon', withIcon !== undefined, withIcon?.icon)
+
+// ── DSH trust gate: ctx.connection.requestRejection ───────────────────────
+const noSession = await call('GET', `${BASE}/state`, { headers: { 'x-test-auth': 'none' } })
+check('state refuses a request with no browser session', noSession.status === 401, String(noSession.status))
+const gatedImport = await call('POST', `${BASE}/import`, {
+  headers: { 'x-test-auth': 'forbidden', 'content-type': 'application/json' },
+  body: { names: ['brainstorming'] },
+})
+check('import refuses what the trust gate rejects', gatedImport.status === 403, String(gatedImport.status))
+const gatedIcon = await call('GET', `${BASE}/icon?dir=x&name=_icon.png`, { headers: { 'x-test-auth': 'none' } })
+check('icon route is gated as well', gatedIcon.status === 401, String(gatedIcon.status))
 
 // ── icon ───────────────────────────────────────────────────────────────────
 const icon = await call('GET', `${BASE}/icon?dir=${encodeURIComponent(withIcon.sourceDir)}&name=${encodeURIComponent(withIcon.icon)}`)
@@ -178,6 +213,23 @@ const crossSiteSettings = await call('POST', `${BASE}/settings`, {
 check('settings refuses cross-site', crossSiteSettings.status === 403, String(crossSiteSettings.status))
 const getSettings = await call('GET', `${BASE}/settings`)
 check('settings rejects GET', getSettings.status === 405, String(getSettings.status))
+
+// ── fail closed when the connection service is missing ────────────────────
+const bare = stubServer()
+const disposeBare = mountRoutes(
+  { webServer: bare.webServer },
+  {
+    sourcePath: DEFAULT_SOURCE_PATH,
+    targetRoot: target,
+    manifestPath: join(target, '.manifest', 'manifest.json'),
+    settingsPath,
+    dshHome: target,
+  },
+)
+const bareRes = response()
+await bare.routes.get(`${BASE}/state`)(request('GET', `${BASE}/state`), bareRes)
+check('routes fail closed without the connection service', bareRes.status === 503, String(bareRes.status))
+disposeBare()
 
 dispose()
 await rm(target, { recursive: true, force: true })

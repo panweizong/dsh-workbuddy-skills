@@ -1,6 +1,6 @@
 {
   "name": "dsh-workbuddy-skills",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "WorkBuddy skill market for DeepSeek Harness: scan the WorkBuddy skills folder, normalize and dedupe skill ids, then copy picked skills into the DSH skills directory from a Settings panel.",
   "type": "module",
   "main": "src/index.js",

@@ -6,6 +6,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-20
+
+### Security
+
+- Every HTTP route now starts with DSH's own trust gate,
+  `ctx.connection.requestRejection({ headers })`: Connection's Host/Origin checks
+  plus browser authentication, so a web page open in an arbitrary browser tab can
+  no longer reach the panel routes (401/403 instead). The gate fails closed — if the
+  `connection` service is unavailable the routes answer 503 rather than serving
+  unauthenticated traffic.
+
+### Changed
+
+- `connection` is now part of the staged service injection alongside `webServer`.
+
 ## [0.1.0] - 2026-11-17
 
 ### Added

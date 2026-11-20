@@ -43,6 +43,7 @@ WorkBuddy 的 skill 目录（默认 `~/.workbuddy/skills`）里的包不能直�
 | 变更判定 | 目标 `SKILL.md` 的 SHA-256 与重建内容一致 → `same`，跳过 |
 | 覆盖保护 | 默认跳过已存在技能；勾选「更新已存在」才覆盖，覆盖前备份到 `<目标>/.backup/<id>-<时间戳>/` |
 | 安全上限 | 单技能 ≤500 文件、单文件 ≤4 MiB、总计 ≤16 MiB；拒绝 `..` 与绝对路径 |
+| 访问控制 | 五条路由的每个 handler 首行都走 DSH 自身的信任闸门 `ctx.connection.requestRejection({ headers })`（Host/Origin 校验 + 浏览器身份认证），任意网页无法调用；`connection` 服务缺失时返回 503，不放行 |
 | 试运行 | 默认只出清单不写盘，确认后取消勾选再导 |
 | 图标 | 取包内 `_icon.png` / `icon.png` / `_icon.svg` / `icon.svg` / `_icon.jpg` / `icon.jpg` / `logo.png` 之首，经 `/api/icon` 只读代理渲染；没有图标时按 id 哈希取色的字母块兜底 |
 | 删除 | 已导入的技能可在卡片上直接删除，二次确认；默认先备份到 `<目标>/.backup/<id>-removed-<时间戳>/` |
@@ -96,12 +97,13 @@ WorkBuddy 的 skill 目录（默认 `~/.workbuddy/skills`）里的包不能直�
 - Host：`src/scan.js`（只读扫描 + id 归一 + 状态机 + 图标探测）、`src/importer.js`（复制 / 备份 / 删除 / 清单）、
   `src/settings.js`（面板路径设置的读写与校验，`resolvePaths` 负责「面板 > patch > 默认」三级回落）、
   `src/routes.js`（`GET .../api/state`、`GET .../api/icon`、`POST .../api/import`、`POST .../api/remove`、
-  `POST .../api/settings`，变更类路由强制同源校验 + 单飞）、`src/index.js`（staged inject `webServer`）
+  `POST .../api/settings`，每个 handler 首行先过 `ctx.connection.requestRejection` 信任闸门，
+  变更类路由再叠同源校验 + 单飞）、`src/index.js`（staged inject `webServer` + `connection`）
 - Client：`client/client.js`，注册 `settings.section`（order 47），手写无构建，React 经 `require('react')` 取得
 - 导入清单：`<dshHome>/storages/workbuddy-skills/manifest.json`
 - 路径设置：`<dshHome>/storages/workbuddy-skills/settings.json`
 - 离线自测：`node scripts/smoke.mjs`（扫描 / 导入 / 删除，不需要 DSH 运行时）、
-  `node scripts/routes-smoke.mjs`（桩 webServer 驱动五条路由，校验同源栅栏、图标白名单与路径设置）
+  `node scripts/routes-smoke.mjs`（桩 webServer 驱动五条路由，校验信任闸门 401/403/503、同源栅栏、图标白名单与路径设置）
 
 ## English
 
@@ -133,7 +135,12 @@ import:
 - **Delete** — remove an imported skill from its card, with two-step confirmation and the
   same backup rule (symlinked skills are never followed or deleted).
 - **Limits** — 500 files, 4 MiB per file, 16 MiB per skill; `..` and absolute paths are
-  rejected. All mutating routes are same-origin `POST` only.
+  rejected.
+- **Access control** — every route handler starts with DSH's own trust gate,
+  `ctx.connection.requestRejection({ headers })` (Connection's Host/Origin checks plus
+  browser authentication), so an arbitrary web page cannot call them; mutating routes are
+  additionally same-origin `POST` only. The gate fails closed: without the `connection`
+  service the routes answer 503.
 
 Source and target directories are configurable in the panel (`Settings → WorkBuddy Skills →
 Paths`) or through patch config; empty values fall back to `~/.workbuddy/skills` and

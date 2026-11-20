@@ -17,13 +17,18 @@
  * (panel setting > patch config > default); `settings.sourceDefault` /
  * `settings.targetDefault` are the defaults an empty field falls back to.
  *
- * Security baseline (same contract as the sibling WorkBuddy plugins):
- * mutating routes accept same-origin POSTs only (405 otherwise); a PRESENT
- * Host must name a loopback authority (DNS-rebinding defence), a present
- * Origin must equal Host, an ABSENT Origin passes (the Desktop proxy strips
- * it), `sec-fetch-site: cross-site` is refused; JSON bodies are capped at
- * 16 KiB; every response carries `cache-control: no-store`; mutating calls
- * are single-flight (a concurrent one gets 409).
+ * Security baseline:
+ * every handler starts with DSH's own trust gate —
+ * `ctx.connection.requestRejection({ headers })` — which applies Connection's
+ * Host/Origin checks AND browser authentication, so a page opened in an
+ * arbitrary browser tab cannot reach these routes (401/403 otherwise). The
+ * gate fails closed: without the `connection` service the routes answer 503.
+ * On top of that, mutating routes accept same-origin POSTs only (405
+ * otherwise); a PRESENT Host must name a loopback authority (DNS-rebinding
+ * defence), a present Origin must equal Host, an ABSENT Origin passes (the
+ * Desktop proxy strips it), `sec-fetch-site: cross-site` is refused; JSON
+ * bodies are capped at 16 KiB; every response carries `cache-control:
+ * no-store`; mutating calls are single-flight (a concurrent one gets 409).
  *
  * The icon route is read-only and takes its two inputs from an allow-list
  * (`dir` must be a plain sibling folder name, `name` must be one of the icon
@@ -82,6 +87,16 @@ function sameOrigin(request) {
   }
 }
 
+/**
+ * DSH Connection trust gate for one request.
+ * Returns 401/403 when Connection refuses it, or 503 when the `connection`
+ * service is unavailable (fail closed — never fall back to a weaker policy).
+ */
+function trustRefusal(connection, request) {
+  if (typeof connection?.requestRejection !== 'function') return 503
+  return connection.requestRejection({ headers: request.headers }) ?? undefined
+}
+
 /** Read and parse a JSON body, rejecting anything over `maxBytes`. */
 async function readJsonBody(request, maxBytes = 16384) {
   const chunks = []
@@ -99,7 +114,9 @@ async function readJsonBody(request, maxBytes = 16384) {
 /**
  * Register every market route on the host webServer.
  * @param {object} hostCtx - context exposing `webServer`
- * @param {{ sourcePath: string, targetRoot: string, manifestPath: string,
+ * @param {{ connection?: { requestRejection(request: { headers: object }):
+ *            401 | 403 | undefined },
+ *           sourcePath: string, targetRoot: string, manifestPath: string,
  *           settingsPath: string, dshHome?: string,
  *           defaults?: { overwrite?: boolean, backup?: boolean } }} options
  * @returns {() => void} disposer dropping every route
@@ -109,6 +126,22 @@ export function mountRoutes(hostCtx, options) {
   const register = (route) => {
     const off = hostCtx.webServer.register(route)
     if (typeof off === 'function') disposers.push(off)
+  }
+
+  /**
+   * Answer the request and return true when the handler must stop: either DSH
+   * Connection refused it (401/403) or the service needed for that check is
+   * missing (503).
+   */
+  const refused = (request, response) => {
+    const refusal = trustRefusal(options.connection, request)
+    if (refusal === undefined) return false
+    if (refusal === 503) {
+      sendJson(response, 503, { error: 'connection service unavailable' })
+      return true
+    }
+    sendJson(response, refusal, { error: refusal === 401 ? 'authentication required' : 'request refused' })
+    return true
   }
 
   /**
@@ -157,6 +190,7 @@ export function mountRoutes(hostCtx, options) {
     kind: 'exact',
     path: `${ROUTE_BASE}/api/state`,
     handler: async (request, response) => {
+      if (refused(request, response)) return
       if (request.method !== 'GET' && request.method !== 'HEAD') {
         sendJson(response, 405, { error: 'method not allowed' })
         return
@@ -173,6 +207,7 @@ export function mountRoutes(hostCtx, options) {
     kind: 'exact',
     path: `${ROUTE_BASE}/api/settings`,
     handler: async (request, response) => {
+      if (refused(request, response)) return
       if (request.method !== 'POST') {
         sendJson(response, 405, { error: 'method not allowed' })
         return
@@ -216,6 +251,7 @@ export function mountRoutes(hostCtx, options) {
     kind: 'exact',
     path: `${ROUTE_BASE}/api/import`,
     handler: async (request, response) => {
+      if (refused(request, response)) return
       if (request.method !== 'POST') {
         sendJson(response, 405, { error: 'method not allowed' })
         return
@@ -266,6 +302,7 @@ export function mountRoutes(hostCtx, options) {
     kind: 'exact',
     path: `${ROUTE_BASE}/api/icon`,
     handler: async (request, response) => {
+      if (refused(request, response)) return
       if (request.method !== 'GET' && request.method !== 'HEAD') {
         sendJson(response, 405, { error: 'method not allowed' })
         return
@@ -309,6 +346,7 @@ export function mountRoutes(hostCtx, options) {
     kind: 'exact',
     path: `${ROUTE_BASE}/api/remove`,
     handler: async (request, response) => {
+      if (refused(request, response)) return
       if (request.method !== 'POST') {
         sendJson(response, 405, { error: 'method not allowed' })
         return
